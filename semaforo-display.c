@@ -17,7 +17,7 @@
 #define I2C_SDA 14
 #define I2C_SCL 15
 
-char *TRAFFIC_LIGHT_TEXT_GO[] = { // OLED text when green light is on
+char *TEXTO_SEMAFORO_SIGA[] = { // Texto do OLED quando a luz verde está acesa
   "               ",
   "               ",
   " SINAL ABERTO  ",
@@ -27,7 +27,7 @@ char *TRAFFIC_LIGHT_TEXT_GO[] = { // OLED text when green light is on
   "               ",
   "               "};
 
-char *TRAFFIC_LIGHT_TEXT_CAUTION[] = { // OLED text when yellow light is on
+char *TEXTO_SEMAFORO_ATENCAO[] = { // Texto do OLED quando a luz amarela está acesa
   "               ",
   "               ",
   "   SINAL DE    ",
@@ -37,7 +37,7 @@ char *TRAFFIC_LIGHT_TEXT_CAUTION[] = { // OLED text when yellow light is on
   "               ",
   "               "};
 
-char *TRAFFIC_LIGHT_TEXT_STOP[] = { // OLED text when red light is on
+char *TEXTO_SEMAFORO_PARE[] = { // Texto do OLED quando a luz vermelha está acesa
   "               ",
   "               ",
   " SINAL FECHADO ",
@@ -47,13 +47,13 @@ char *TRAFFIC_LIGHT_TEXT_STOP[] = { // OLED text when red light is on
   "               ",
   "               "};
 
-int A_state = 0; // Button A is set to OFF by default
+int A_state = 0; // Botão A vem definido como desligado por padrão
 
-void display_text(char *text[], uint8_t *ssd, struct render_area *frame_area, size_t line_count) { // Display text on OLED
+void MostrarTexto(char *text[], uint8_t *ssd, struct render_area *frame_area, size_t line_count) { // Mostra o texto na tela
   memset(ssd, 0, ssd1306_buffer_length);
   int y_axis = 0;
 
-  for (size_t index = 0; index < line_count; index++) { // Draw the text in the OLED, line per line
+  for (size_t index = 0; index < line_count; index++) { // Desenha o texto no OLED, linha por linha
     ssd1306_draw_string(ssd, 5, y_axis, text[index]);
     y_axis += 8;
   }
@@ -61,36 +61,25 @@ void display_text(char *text[], uint8_t *ssd, struct render_area *frame_area, si
   render_on_display(ssd, frame_area);
 }
 
-void set_traffic_light_go() {
+void SinalAberto() {
   gpio_put(LED_R_PIN, 0);
   gpio_put(LED_G_PIN, 1);
   gpio_put(LED_B_PIN, 0);
 }
 
-void set_traffic_light_caution() {
+void SinalAtencao() {
   gpio_put(LED_R_PIN, 1);
   gpio_put(LED_G_PIN, 1);
   gpio_put(LED_B_PIN, 0);
 }
 
-void set_traffic_light_stop() {
+void SinalFechado() {
   gpio_put(LED_R_PIN, 1);
   gpio_put(LED_G_PIN, 0);
   gpio_put(LED_B_PIN, 0);
 }
 
-void manage_traffic_light_and_display(char color, uint8_t *ssd, struct render_area *frame_area) {
-  switch (color) {
-  case 'R':
-    break;
-  case 'G':
-    break;
-  case 'B':
-    break;
-  }
-}
-
-int wait_for_button_pressing(int timeMS) { // Check constantly if BTN_A is pressed
+int EsperarPressionamentoBotao(int timeMS) { // Checa constantemente se BTN_A está pressionado
   for (int i = 0; i < timeMS; i++) {
     A_state = !gpio_get(BTN_A_PIN);
     if (A_state == 1) {
@@ -101,11 +90,11 @@ int wait_for_button_pressing(int timeMS) { // Check constantly if BTN_A is press
   return 0;
 }
 
-void run_peripherals_setup() {
-  // INITIALIZE STDIO TYPES
+void InicializarPerifericos() {
+  // INICIALIZAÇÃO DE TIPOS STDIO
   stdio_init_all();
 
-  // START AND CONFIGURE LEDS
+  // INICIALIZA E CONFIGURA LEDS
   gpio_init(LED_R_PIN);
   gpio_set_dir(LED_R_PIN, GPIO_OUT);
   gpio_init(LED_G_PIN);
@@ -113,12 +102,12 @@ void run_peripherals_setup() {
   gpio_init(LED_B_PIN);
   gpio_set_dir(LED_B_PIN, GPIO_OUT);
 
-  // START AND CONFIGURE BUTTON
+  // INICIALIZA E CONFIGURA BOTÕES
   gpio_init(BTN_A_PIN);
   gpio_set_dir(BTN_A_PIN, GPIO_IN);
   gpio_pull_up(BTN_A_PIN);
 
-  // START AND CONFIGURE DISPLAY
+  // INICIALIZA E CONFIGURA TELA
   i2c_init(i2c1, ssd1306_i2c_clock * 400);
   gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
   gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
@@ -128,7 +117,7 @@ void run_peripherals_setup() {
 }
 
 int main() {
-  run_peripherals_setup();
+  InicializarPerifericos();
   struct render_area frame_area = {
     start_column : 0,
     end_column : ssd1306_width - 1,
@@ -140,27 +129,27 @@ int main() {
   uint8_t ssd[ssd1306_buffer_length];
 
   while (true) {
-    set_traffic_light_stop(); // Stop signal for 8 seconds
-    display_text(TRAFFIC_LIGHT_TEXT_STOP, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_STOP));
+    SinalFechado(); // Sinal fechado por 8 segundos
+    MostrarTexto(TEXTO_SEMAFORO_PARE, ssd, &frame_area, count_of(TEXTO_SEMAFORO_PARE));
 
-    A_state = wait_for_button_pressing(8000); // Waits for the button to be pressed
+    A_state = EsperarPressionamentoBotao(8000); // Waits for the button to be pressed
 
-    if (A_state) {                 // When the button is pressed...
-      set_traffic_light_caution(); // Caution signal for 5 seconds
-      display_text(TRAFFIC_LIGHT_TEXT_CAUTION, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_CAUTION));
+    if (A_state) {    // Quando o botão é pressionado...
+      SinalAtencao(); // Sinal de atenção por 5 segundos
+      MostrarTexto(TEXTO_SEMAFORO_ATENCAO, ssd, &frame_area, count_of(TEXTO_SEMAFORO_ATENCAO));
       sleep_ms(5000);
 
-      set_traffic_light_go(); // Go signal for 10 seconds
-      display_text(TRAFFIC_LIGHT_TEXT_GO, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_GO));
+      SinalAberto(); // Sinal aberto por 10 segundos
+      MostrarTexto(TEXTO_SEMAFORO_SIGA, ssd, &frame_area, count_of(TEXTO_SEMAFORO_SIGA));
       sleep_ms(10000);
 
-    } else {                       // When the button is not pressed...
-      set_traffic_light_caution(); // Caution signal for 2 seconds
-      display_text(TRAFFIC_LIGHT_TEXT_CAUTION, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_CAUTION));
+    } else {          // Quando o botão não é pressionado...
+      SinalAtencao(); // Sinal de atenção por 2 segundos
+      MostrarTexto(TEXTO_SEMAFORO_ATENCAO, ssd, &frame_area, count_of(TEXTO_SEMAFORO_ATENCAO));
       sleep_ms(2000);
 
-      set_traffic_light_go(); // Go signal for 8 seconds
-      display_text(TRAFFIC_LIGHT_TEXT_GO, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_GO));
+      SinalAberto(); // Sinal aberto por 8 segundos
+      MostrarTexto(TEXTO_SEMAFORO_SIGA, ssd, &frame_area, count_of(TEXTO_SEMAFORO_SIGA));
       sleep_ms(8000);
     }
   }
