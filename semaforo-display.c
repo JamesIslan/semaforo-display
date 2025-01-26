@@ -17,7 +17,7 @@
 #define I2C_SDA 14
 #define I2C_SCL 15
 
-char *TRAFFIC_LIGHT_TEXT_GO[] = {
+char *TRAFFIC_LIGHT_TEXT_GO[] = { // OLED text when green light is on
   "               ",
   "               ",
   " SINAL ABERTO  ",
@@ -27,17 +27,17 @@ char *TRAFFIC_LIGHT_TEXT_GO[] = {
   "               ",
   "               "};
 
-char *TRAFFIC_LIGHT_TEXT_CAUTION[] = {
+char *TRAFFIC_LIGHT_TEXT_CAUTION[] = { // OLED text when yellow light is on
   "               ",
   "               ",
   "   SINAL DE    ",
-  "    ATENÇÃO    ",
+  "    ATENCAO    ",
   "               ",
   "  PREPARE SE   ",
   "               ",
   "               "};
 
-char *TRAFFIC_LIGHT_TEXT_STOP[] = {
+char *TRAFFIC_LIGHT_TEXT_STOP[] = { // OLED text when red light is on
   "               ",
   "               ",
   " SINAL FECHADO ",
@@ -53,7 +53,7 @@ void display_text(char *text[], uint8_t *ssd, struct render_area *frame_area, si
   memset(ssd, 0, ssd1306_buffer_length);
   int y_axis = 0;
 
-  for (size_t index = 0; index < line_count; index++) {
+  for (size_t index = 0; index < line_count; index++) { // Draw the text in the OLED, line per line
     ssd1306_draw_string(ssd, 5, y_axis, text[index]);
     y_axis += 8;
   }
@@ -79,13 +79,24 @@ void set_traffic_light_stop() {
   gpio_put(LED_B_PIN, 0);
 }
 
-int wait_for_button_pressing(int timeMS) {
-  for (int i = 0; i < timeMS; i = i + 100) {
+void manage_traffic_light_and_display(char color, uint8_t *ssd, struct render_area *frame_area) {
+  switch (color) {
+  case 'R':
+    break;
+  case 'G':
+    break;
+  case 'B':
+    break;
+  }
+}
+
+int wait_for_button_pressing(int timeMS) { // Check constantly if BTN_A is pressed
+  for (int i = 0; i < timeMS; i++) {
     A_state = !gpio_get(BTN_A_PIN);
     if (A_state == 1) {
       return 1;
     }
-    sleep_ms(100);
+    sleep_ms(1);
   }
   return 0;
 }
@@ -129,7 +140,7 @@ int main() {
   uint8_t ssd[ssd1306_buffer_length];
 
   while (true) {
-    set_traffic_light_stop();
+    set_traffic_light_stop(); // Stop signal for 8 seconds
     display_text(TRAFFIC_LIGHT_TEXT_STOP, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_STOP));
 
     A_state = wait_for_button_pressing(8000); // Waits for the button to be pressed
@@ -139,7 +150,7 @@ int main() {
       display_text(TRAFFIC_LIGHT_TEXT_CAUTION, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_CAUTION));
       sleep_ms(5000);
 
-      set_traffic_light_go(); // Stop signal for 10 seconds
+      set_traffic_light_go(); // Go signal for 10 seconds
       display_text(TRAFFIC_LIGHT_TEXT_GO, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_GO));
       sleep_ms(10000);
 
@@ -148,7 +159,7 @@ int main() {
       display_text(TRAFFIC_LIGHT_TEXT_CAUTION, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_CAUTION));
       sleep_ms(2000);
 
-      set_traffic_light_go(); // Stop signal for 8 seconds
+      set_traffic_light_go(); // Go signal for 8 seconds
       display_text(TRAFFIC_LIGHT_TEXT_GO, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_GO));
       sleep_ms(8000);
     }
