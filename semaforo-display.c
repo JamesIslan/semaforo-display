@@ -1,5 +1,4 @@
 #include <ctype.h>
-#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,30 +17,48 @@
 #define I2C_SDA 14
 #define I2C_SCL 15
 
+char *TRAFFIC_LIGHT_TEXT_GO[] = {
+  "               ",
+  "               ",
+  " SINAL ABERTO  ",
+  "               ",
+  " ATRAVESSE COM ",
+  "    CUIDADO    ",
+  "               ",
+  "               "};
+
+char *TRAFFIC_LIGHT_TEXT_CAUTION[] = {
+  "               ",
+  "               ",
+  "   SINAL DE    ",
+  "    ATENÇÃO    ",
+  "               ",
+  "  PREPARE SE   ",
+  "               ",
+  "               "};
+
+char *TRAFFIC_LIGHT_TEXT_STOP[] = {
+  "               ",
+  "               ",
+  " SINAL FECHADO ",
+  "               ",
+  "    AGUARDE    ",
+  "               ",
+  "               ",
+  "               "};
+
 int A_state = 0; // Button A is set to OFF by default
-uint8_t ssd[ssd1306_buffer_length];
 
-struct render_area frame_area = {
-  start_column : 0,
-  end_column : ssd1306_width - 1,
-  start_page : 0,
-  end_page : ssd1306_n_pages - 1
-};
-
-void display_text(char **text, uint8_t *ssd, struct render_area *frame_area) { // Display text on OLED
+void display_text(char *text[], uint8_t *ssd, struct render_area *frame_area, size_t line_count) { // Display text on OLED
+  memset(ssd, 0, ssd1306_buffer_length);
   int y_axis = 0;
 
-  for (uint index = 0; index <= count_of(text); index++) {
+  for (size_t index = 0; index < line_count; index++) {
     ssd1306_draw_string(ssd, 5, y_axis, text[index]);
     y_axis += 8;
   }
 
   render_on_display(ssd, frame_area);
-}
-
-void clear_display() {
-  memset(ssd, 0, ssd1306_buffer_length);
-  render_on_display(ssd, &frame_area);
 }
 
 void set_traffic_light_go() {
@@ -60,36 +77,6 @@ void set_traffic_light_stop() {
   gpio_put(LED_R_PIN, 1);
   gpio_put(LED_G_PIN, 0);
   gpio_put(LED_B_PIN, 0);
-}
-
-void set_display_go(char **text) {
-  // text[0] = "";
-  text[0] = "SINAL ABERTO";
-  // text[2] = "";
-  text[1] = "ATRAVESSAR";
-  // text[4] = " ",
-  text[2] = "COM CUIDADO";
-  text[3] = " ";
-  display_text(text, ssd, &frame_area);
-}
-
-void set_display_caution(char **text) {
-  // text[0] = "";
-  text[0] = "SINAL DE";
-  text[1] = "ATENCAO";
-  // text[2] = "";
-  text[2] = "PREPARE-SE";
-  text[3] = " ";
-  display_text(text, ssd, &frame_area);
-}
-
-void set_display_stop(char **text) {
-  // text[0] = "";
-  text[0] = "SINAL FECHADO";
-  // text[2] = "";
-  text[1] = "AGUARDE";
-  text[2] = " ";
-  display_text(text, ssd, &frame_area);
 }
 
 int wait_for_button_pressing(int timeMS) {
@@ -121,7 +108,7 @@ void run_peripherals_setup() {
   gpio_pull_up(BTN_A_PIN);
 
   // START AND CONFIGURE DISPLAY
-  i2c_init(i2c1, ssd1306_i2c_clock * 1000);
+  i2c_init(i2c1, ssd1306_i2c_clock * 400);
   gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
   gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
   gpio_pull_up(I2C_SDA);
@@ -130,39 +117,39 @@ void run_peripherals_setup() {
 }
 
 int main() {
-  setlocale(LC_ALL, "Portuguese"); // Ler acentos
   run_peripherals_setup();
-  char *text[5];
+  struct render_area frame_area = {
+    start_column : 0,
+    end_column : ssd1306_width - 1,
+    start_page : 0,
+    end_page : ssd1306_n_pages - 1
+  };
 
   calculate_render_area_buffer_length(&frame_area);
+  uint8_t ssd[ssd1306_buffer_length];
 
   while (true) {
     set_traffic_light_stop();
-    clear_display();
-    set_display_stop(text);
+    display_text(TRAFFIC_LIGHT_TEXT_STOP, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_STOP));
 
     A_state = wait_for_button_pressing(8000); // Waits for the button to be pressed
 
     if (A_state) {                 // When the button is pressed...
       set_traffic_light_caution(); // Caution signal for 5 seconds
-      clear_display();
-      set_display_caution(text);
+      display_text(TRAFFIC_LIGHT_TEXT_CAUTION, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_CAUTION));
       sleep_ms(5000);
 
       set_traffic_light_go(); // Stop signal for 10 seconds
-      clear_display();
-      set_display_go(text);
+      display_text(TRAFFIC_LIGHT_TEXT_GO, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_GO));
       sleep_ms(10000);
 
     } else {                       // When the button is not pressed...
       set_traffic_light_caution(); // Caution signal for 2 seconds
-      clear_display();
-      set_display_caution(text);
+      display_text(TRAFFIC_LIGHT_TEXT_CAUTION, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_CAUTION));
       sleep_ms(2000);
 
       set_traffic_light_go(); // Stop signal for 8 seconds
-      clear_display();
-      set_display_go(text);
+      display_text(TRAFFIC_LIGHT_TEXT_GO, ssd, &frame_area, count_of(TRAFFIC_LIGHT_TEXT_GO));
       sleep_ms(8000);
     }
   }
