@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,8 +37,11 @@ void display_text(char **text, uint8_t *ssd, struct render_area *frame_area) { /
   }
 
   render_on_display(ssd, frame_area);
+}
 
-  sleep_ms(1000); // REMOVE LATER
+void clear_display() {
+  memset(ssd, 0, ssd1306_buffer_length);
+  render_on_display(ssd, &frame_area);
 }
 
 void set_traffic_light_go() {
@@ -59,33 +63,39 @@ void set_traffic_light_stop() {
 }
 
 void set_display_go(char **text) {
-  text[0] = "";
-  text[1] = "SINAL ABERTO";
-  text[2] = "";
-  text[3] = "ATRAVESSAR COM CUIDADO";
+  // text[0] = "";
+  text[0] = "SINAL ABERTO";
+  // text[2] = "";
+  text[1] = "ATRAVESSAR";
+  // text[4] = " ",
+  text[2] = "COM CUIDADO";
+  text[3] = " ";
   display_text(text, ssd, &frame_area);
 }
 
 void set_display_caution(char **text) {
-  text[0] = "";
-  text[1] = "SINAL DE ATENÇÃO";
-  text[2] = "";
-  text[3] = "PREPARE-SE";
+  // text[0] = "";
+  text[0] = "SINAL DE";
+  text[1] = "ATENCAO";
+  // text[2] = "";
+  text[2] = "PREPARE-SE";
+  text[3] = " ";
   display_text(text, ssd, &frame_area);
 }
 
 void set_display_stop(char **text) {
-  text[0] = "";
-  text[1] = "SINAL FECHADO";
-  text[2] = "";
-  text[3] = "AGUARDE";
+  // text[0] = "";
+  text[0] = "SINAL FECHADO";
+  // text[2] = "";
+  text[1] = "AGUARDE";
+  text[2] = " ";
   display_text(text, ssd, &frame_area);
 }
 
 int wait_for_button_pressing(int timeMS) {
   for (int i = 0; i < timeMS; i = i + 100) {
-    A_state = gpio_get(BTN_A_PIN);
-    if (!A_state == 1) {
+    A_state = !gpio_get(BTN_A_PIN);
+    if (A_state == 1) {
       return 1;
     }
     sleep_ms(100);
@@ -120,36 +130,38 @@ void run_peripherals_setup() {
 }
 
 int main() {
+  setlocale(LC_ALL, "Portuguese"); // Ler acentos
   run_peripherals_setup();
-  char *text[4];
+  char *text[5];
 
   calculate_render_area_buffer_length(&frame_area);
 
-  // SET DISPLAY CONTENT TO BLANK
-  memset(ssd, 0, ssd1306_buffer_length);
-  render_on_display(ssd, &frame_area);
-
   while (true) {
     set_traffic_light_stop();
+    clear_display();
     set_display_stop(text);
 
     A_state = wait_for_button_pressing(8000); // Waits for the button to be pressed
 
     if (A_state) {                 // When the button is pressed...
       set_traffic_light_caution(); // Caution signal for 5 seconds
+      clear_display();
       set_display_caution(text);
       sleep_ms(5000);
 
       set_traffic_light_go(); // Stop signal for 10 seconds
+      clear_display();
       set_display_go(text);
       sleep_ms(10000);
 
     } else {                       // When the button is not pressed...
       set_traffic_light_caution(); // Caution signal for 2 seconds
+      clear_display();
       set_display_caution(text);
       sleep_ms(2000);
 
       set_traffic_light_go(); // Stop signal for 8 seconds
+      clear_display();
       set_display_go(text);
       sleep_ms(8000);
     }
